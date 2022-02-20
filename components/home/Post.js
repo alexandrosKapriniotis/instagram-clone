@@ -14,6 +14,7 @@ const Post = ({ post }) => {
             <Likes post={post} />
             <Caption post={post} />
             <CommentSection post={post} />
+            <Comments post={post} />
         </View>
     </View>
   );
@@ -97,6 +98,23 @@ const CommentSection = ({ post }) => (
             </Text>)
         }
     </View>
+);
+
+const Comments = ({post}) => (
+    <>
+        { post.comments && post.comments.length > 1 &&
+            post.comments.map((comment,index) => {
+                <View key={index} style={{flexDirection: 'row',marginTop: 10}}>
+                    <Text style={{color:'#FFF'}}>
+                        <Text style={{fontWeight: '600'}}>
+                            {comment.email}
+                        </Text>
+                        { comment.body }
+                    </Text>
+                </View>
+            })
+        }
+    </>
 );
 
 const styles = StyleSheet.create({

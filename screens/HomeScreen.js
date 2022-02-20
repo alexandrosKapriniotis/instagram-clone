@@ -6,10 +6,10 @@ import Header from '../components/home/Header';
 import Stories from '../components/home/Stories';
 import { POSTS } from '../data/posts';
 
-function HomeScreen(props) {
+function HomeScreen({navigation}) {
   return (
     <View style={styles.container}>
-        <Header />
+        <Header navigation={navigation} />
         <Stories />
         <ScrollView>
           { 

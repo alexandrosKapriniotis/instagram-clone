@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, Text, Image, TouchableOpacity } from 'react-native';
 
-function Header(props) {
+function Header({navigation}) {
   return (
     <View style={styles.container}>
         <TouchableOpacity>
@@ -12,7 +12,7 @@ function Header(props) {
         </TouchableOpacity>
 
         <View style={styles.iconsContainer}>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={ () => navigation.push('NewPostScreen')}>
                 <Image 
                     style={styles.icon} 
                     source={require('../../assets/plus-2-math.png')} 
