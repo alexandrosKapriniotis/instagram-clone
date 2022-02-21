@@ -28,7 +28,7 @@ export default function FormikPostUploader({ navigation }) {
         {({handleBlur,handleChange,handleSubmit,values,errors,isValid}) => (
             <>
             <View style={styles.container}>
-                <Image source={thumbnailUrl ? {uri: thumbnailUrl} : require(PLACEHOLDER_IMAGE)} style={styles.image} />
+                <Image source={validUrl.isUri(thumbnailUrl) ? {uri: thumbnailUrl} : require(PLACEHOLDER_IMAGE)} style={styles.image} />
 
                 <View style={{flex: 1,marginLeft: 12}}>
                     <TextInput 
