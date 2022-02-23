@@ -4,11 +4,10 @@ import { Formik } from 'formik';
 import * as yup from 'yup';
 import Validator from 'email-validator';
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc,getFirestore } from "firebase/firestore"; 
+import { doc, setDoc } from "firebase/firestore"; 
 import { LogBox } from 'react-native';
 
-
-import firebaseApp from '../../firebase';
+import { firebaseApp, db } from '../../firebase';
 
 LogBox.ignoreLogs(['Setting a timer for a long period of time'])
 
@@ -26,29 +25,33 @@ function signupForm({navigation}) {
       return data.results[0].picture.large
   }
 
-  const onSignup = async (email,username,password) => {
-    const auth = getAuth(firebaseApp);
-
-    const saveUser = async (user) => {
-        const db = getFirestore();
-
-        await setDoc(doc(db, "users",user.uid), {
+  const saveUser = async (user) => {
+    try {
+        await setDoc(doc(db, "users",user.email), {
             owner_uid: user.uid,
-            username: username,
+            username: user.username,
             email: user.email,
             profile_picture: await getRandomProfilePicture()
           }).catch(error => {
             console.log('Something went wrong',error.message)
           });
+    } catch (error) {
+        console.log('Something went wrong',error.message)
     }
+    
+}
+
+  const onSignup = async (email,username,password) => {
+    const auth = getAuth(firebaseApp);
 
     createUserWithEmailAndPassword(auth, email, password)
       .then( (userCredential) => {
         // Signed in 
         const user = userCredential.user;
 
-        saveUser(user);
-        console.log('firebase user created successfully',user)
+        saveUser({uid: user.uid,email: user.email,username});
+        
+        navigation.push('HomeScreen')
       })
       .catch((error) => {
         const errorMessage = error.message;

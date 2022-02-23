@@ -2,15 +2,34 @@ import React from 'react';
 import { View, StyleSheet,Text,Image, TouchableOpacity } from 'react-native';
 import { Divider } from 'react-native-elements';
 import { Entypo, MaterialCommunityIcons } from '@expo/vector-icons';
+import { auth, db } from '../../firebase';
+import { arrayRemove, arrayUnion, collection, doc,updateDoc,collectionGroup } from 'firebase/firestore';
 
 const Post = ({ post }) => {
+  
+  const handleLike = () => {
+    const currentLikeStatus = !post.likes_by_users.includes(auth.currentUser.email);
+
+    const postRef = collection(db, "users", post.owner_email, "posts");
+
+    updateDoc(doc(postRef,post.id), {
+        likes_by_users: currentLikeStatus 
+            ? arrayUnion(auth.currentUser.email) 
+            : arrayRemove(auth.currentUser.email)
+    }).then( () => {
+        console.log('Document successfully added')
+    }).catch( error => {
+        console.log('Error updating document: ', error.message)
+    })
+  }  
+
   return (
     <View style={styles.container}>
         <Divider width={1} orientation='vertical' />
         <PostHeader post={post} />
         <PostImage post={post} />
         <View style={{marginHorizontal: 15,marginTop: 10}}>
-            <PostFooter />
+            <PostFooter post={post} handleLike={handleLike} />
             <Likes post={post} />
             <Caption post={post} />
             <CommentSection post={post} />
@@ -29,8 +48,8 @@ const PostHeader = ({ post }) => {
                     alignItems: 'center'
                 }}>
             <View style={{ flexDirection: 'row',alignItems: 'center'}}>
-                <Image source={{uri: "https://images.pexels.com/photos/3228213/pexels-photo-3228213.jpeg"}} style={styles.profilePic} />
-                <Text style={styles.text}>{ post.title }</Text>
+                <Image source={{uri: post.profile_image}} style={styles.profilePic} />
+                <Text style={styles.text}>{ post.username }</Text>
             </View>
 
             <Entypo name="dots-three-horizontal" size={12} color="#FFF" />
@@ -45,16 +64,24 @@ const PostImage = ({post}) => (
         }}
     >
         <Image 
-            source={{uri: "https://images.pexels.com/photos/3228213/pexels-photo-3228213.jpeg"}} 
+            source={{uri: post.imageUrl}} 
             style={{ height: '100%',resizeMode: 'cover'}}
         />
     </View>
 );
 
-const PostFooter = () => {
+const PostFooter = ({handleLike,post}) => {
     return <View style={{flexDirection: "row",justifyContent: 'space-between'}}>
                 <View style={styles.leftFooterIconsContainer}>
-                    <Icon iconStyle={{ size: 26,color: '#fff'}} iconName="heart-outline" />
+                    <TouchableOpacity onPress={() => handleLike(post)}>
+                        <Image 
+                            style={{width: 26,height: 25}} 
+                            source={  
+                                post.likes_by_users.includes(auth.currentUser.email) 
+                                ? require("../../assets/heart-full.png")
+                                : require("../../assets/like--v1.png")} 
+                        />
+                    </TouchableOpacity>
                     <Icon iconStyle={{ size: 26,color: '#fff'}} iconName="comment-outline" />
                     <Icon iconStyle={{ size: 26,color: '#fff'}} iconName="share-outline" />
                 </View>
@@ -74,7 +101,7 @@ const Icon = ({ iconStyle, iconName}) => (
 const Likes = ({ post }) => (
     <View style={{flexDirection: 'row',marginTop: 4}}>
         <Text style={{color: '#FFF',fontWeight: '600'}}>
-            { post.id.toLocaleString('en') } likes
+            { post.likes_by_users.length.toLocaleString('en') } likes
         </Text>
     </View>
 );
@@ -83,7 +110,7 @@ const Caption = ({ post }) => (
     <View style={{marginTop: 5}}>
         <Text style={{color: '#FFF'}}>
             <Text style={{fontWeight: '600',marginRight: 5}}>@alexkap</Text>
-            <Text> { post.body }</Text>
+            <Text> { post.caption }</Text>
         </Text>
     </View>    
 );
@@ -118,7 +145,7 @@ const Comments = ({post}) => (
 );
 
 const styles = StyleSheet.create({
-  container: {
+  container: {   
       marginBottom: 30,
   },
   profilePic: {
@@ -138,7 +165,8 @@ const styles = StyleSheet.create({
       flexDirection: "row",
       width: '32%',
       justifyContent: "space-between"
-  }
+  },
+
 });
 
 export default Post;

@@ -5,7 +5,7 @@ import * as yup from 'yup';
 import Validator from 'email-validator';
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 
-import firebaseApp from '../../firebase';
+import { firebaseApp } from '../../firebase';
 
 function LoginForm({navigation}) {
   const LoginFormSchema = yup.object().shape({

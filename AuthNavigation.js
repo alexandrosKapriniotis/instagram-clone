@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import SignedInStack, { SignedoutStack } from './Navigation';
 import { getAuth, onAuthStateChanged } from "firebase/auth";
-import firebaseApp from './firebase';
+import { firebaseApp } from './firebase';
 
 function AuthNavigation() {
   const [currentUser,setCurrentUser] = useState(null);
@@ -15,7 +15,7 @@ function AuthNavigation() {
         }
     })
   },[]);
-  console.log(currentUser)
+  
   return (
     <>
     {

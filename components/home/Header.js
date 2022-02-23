@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, Text, Image, TouchableOpacity } from 'react-native';
 import { getAuth, signOut } from "firebase/auth";
-import firebaseApp from '../../firebase';
+import { firebaseApp } from '../../firebase';
 
 function Header({navigation}) {
 
@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     marginHorizontal: 20,
-    paddingVertical: 5
+    paddingTop: 20    
   },
   logo: {
     width: 100,

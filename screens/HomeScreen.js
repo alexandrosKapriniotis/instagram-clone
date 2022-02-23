@@ -1,29 +1,41 @@
-import React from 'react';
+import React, { useEffect,useState } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 
 import Post from '../components/home/Post';
 import Header from '../components/home/Header';
 import Stories from '../components/home/Stories';
-import { POSTS } from '../data/posts';
+import { onSnapshot,collectionGroup, orderBy,query } from "firebase/firestore";
+import { db } from '../firebase'
+
+import BottomTabs from '../components/home/BottomTabs'
 
 function HomeScreen({navigation}) {
+  const [posts,setPosts] = useState([])
+
+  useEffect( () => {
+    onSnapshot(query(collectionGroup(db, 'posts'),orderBy('createdAt','desc')),snapshot => {      
+      setPosts(snapshot.docs.map(doc => (
+        { id: doc.id, ...doc.data() })))
+    })
+  },[])
+
   return (
     <View style={styles.container}>
         <Header navigation={navigation} />
         <Stories />
+                
         <ScrollView>
           { 
-            POSTS.map( (post,index) => (<Post post={post} key={index} />) )
+            posts.map( (post,index) => (<Post post={post} key={index} />) )
           }
-        </ScrollView>
+        </ScrollView>          
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-      backgroundColor: 'black',
-      flex: 1
+      backgroundColor: 'black'
   }
 });
 

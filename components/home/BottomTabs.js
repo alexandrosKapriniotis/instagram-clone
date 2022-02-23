@@ -64,9 +64,6 @@ const styles = StyleSheet.create({
         width: 30,
         height: 30
     },
-    activeTab: {
-
-    },
     profilePic: (activeTab = '') => ({
         borderRadius: 50,
         borderWidth: activeTab === 'Profile' ? 2 : 0,

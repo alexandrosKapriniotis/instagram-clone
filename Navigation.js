@@ -5,6 +5,7 @@ import HomeScreen from './screens/HomeScreen';
 import NewPostScren from './screens/NewPostScreen';
 import LoginScreen from './screens/LoginScreen';
 import SignupScreen from './screens/SignupScreen';
+import BottomTabs from './components/home/BottomTabs';
 
 const Stack = createStackNavigator();
 
@@ -13,7 +14,8 @@ const screenOptions = {
 }
 const SignedInStack = () => (
     <Stack.Navigator initialRouteName='HomeScreen' screenOptions={screenOptions}>
-      <Stack.Screen name="HomeScreen" component={HomeScreen} />
+      {/* <Stack.Screen name="HomeScreen" component={HomeScreen} /> */}
+      <Stack.Screen name="BottomTabs" component={BottomTabs} />
       <Stack.Screen name="NewPostScreen" component={NewPostScren} />
       <Stack.Screen name="LoginScreen" component={LoginScreen} />
       <Stack.Screen name="SignupScreen" component={SignupScreen} />

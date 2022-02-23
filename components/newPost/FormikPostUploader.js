@@ -1,9 +1,11 @@
 import { StyleSheet, Text, TextInput, View,Image,Button } from 'react-native'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import * as yup from 'yup';
 import { Formik } from 'formik';
 import { Divider } from 'react-native-elements/dist/divider/Divider';
 import validUrl from 'valid-url';
+import { db, firebaseApp, auth } from '../../firebase'
+import { doc, serverTimestamp, onSnapshot,setDoc, collection } from "firebase/firestore";
 
 const PLACEHOLDER_IMAGE = '../../assets/empty-image.png';
 
@@ -14,13 +16,54 @@ const uploadPostSchema = yup.object().shape({
 
 export default function FormikPostUploader({ navigation }) {
   const [thumbnailUrl,setThumbnailUrl] = useState(null)
+  const [currentLoggedInUser,setCurrentLoggedInUser] = useState(null)
+
+  const getUsername = () => {
+    const user = auth.currentUser;
+
+    const docRef = doc(db, "users", user.email);
+    
+    const unsubscribe = onSnapshot(docRef,doc => {   
+        setCurrentLoggedInUser({
+            username: doc.data().username,
+            profilePicture: doc.data().profile_picture,
+            email: user.email
+        })   
+    })
+    return unsubscribe;
+  }
+  
+  useEffect( () => {
+    getUsername()
+  },[])
+
+  const uploadPost = async (imageUrl,caption) => {
+      try {
+        const subColRef = collection(db, "users", currentLoggedInUser.email, "posts");
+
+        await setDoc(doc(subColRef), {
+            imageUrl: imageUrl,
+            username: currentLoggedInUser.username,
+            profile_picture: currentLoggedInUser.profilePicture && '',
+            owner_id: auth.currentUser.uid,
+            owner_email: currentLoggedInUser.email,
+            caption: caption,
+            createdAt: serverTimestamp(),
+            likes: 0,
+            likes_by_users: [],
+            comments: []
+        });
+      } catch (error) {
+          console.log('Error: ',error.message)
+      }
+      return navigation.goBack();
+  }
 
   return (
     <Formik 
         initialValues={{caption: '',imageUrl: ''}}
         onSubmit={(values) => {
-            console.log('your post was submitted successfully')
-            navigation.goBack()
+            uploadPost(values.imageUrl,values.caption)
         }}
         validationSchema={uploadPostSchema}
         validateOnMount={true}
