@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
-import { StyleSheet, Text, View, Button,Image } from 'react-native';
+import { StyleSheet, Text, View, Button,Image,AppState } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Camera } from 'expo-camera';
 import { useIsFocused } from '@react-navigation/native';
 
-export default function Media() {
+export default function Media({navigation}) {
   const [hasGalleryPermission, setHasGalleryPermission] = useState(null);
   const [hasCameraPermission, setHasCameraPermission] = useState(null);
   const [type, setType] = useState(Camera.Constants.Type.back);
@@ -12,7 +12,9 @@ export default function Media() {
   const cameraRef = useRef();
   const isFocused = useIsFocused();
 
+  const [imagePickerActive, setImagePickerActive] = useState(false);
   const [camera, setCamera] = useState(true);
+  const appState = useRef(AppState.currentState);
 
   useEffect(() => {
     (async () => {
@@ -21,16 +23,29 @@ export default function Media() {
 
       const galleryStatus = await ImagePicker.requestMediaLibraryPermissionsAsync();
       setHasGalleryPermission(galleryStatus.status === 'granted');
-
     })();
   }, []);
 
+  useEffect(() => {
+    const stateListener = AppState.addEventListener('change', _handleAppStateChange);
+
+    return stateListener;
+  }, []);
+
+  const _handleAppStateChange = nextAppState => {
+    if (appState.current !== 'background' && !imagePickerActive || appState.current !== 'inactive' && !imagePickerActive) {
+      setCamera(true);
+    } else {
+      setCamera(false);
+    }   
+  };
   const pickImage = async () => {
     if (!hasGalleryPermission) {
       alert("You've refused to allow this appp to access your photos!");
       return;
     }
-
+    setImagePickerActive(true)
+    
     let result = await ImagePicker?.launchImageLibraryAsync({
       mediaTypes: ImagePicker?.MediaTypeOptions?.Images,
       allowsEditing: true,
@@ -38,15 +53,14 @@ export default function Media() {
       quality: 1,
     });
 
-    console.log(result);
 
     if (!result?.cancelled) {
       setImage(result?.uri);
     }
 
+    setImagePickerActive(false)
     setCamera(true)
   };
-
 
   const takePicture = async () => {
     if(cameraRef.current) {
@@ -68,12 +82,13 @@ export default function Media() {
   return (
     <View style={styles.container}>
       <View style={styles.camera}>
-      {camera && isFocused &&
+      { camera && isFocused && !imagePickerActive &&
         <Camera
           ref={cameraRef} 
           style={styles.fixedRatio} 
           type={type} 
           ratio={'1:1'}
+          useCamera2Api={false}
         /> }
       </View>
       
@@ -98,6 +113,9 @@ export default function Media() {
           pickImage();
         }} 
       />
+      <Button 
+        title='Save' 
+        onPress={() => navigation.navigate('Save',{image})} />
       {image && image !== null && <Image source={{uri: image}} style={{flex:1}} />}
     </View>
   );

@@ -17,7 +17,7 @@ import { auth, db } from '../../firebase';
 
 const Tab = createBottomTabNavigator();
 
-function BottomTabs(props) {
+function BottomTabs({navigation}) {
   const [currentLoggedInUser,setCurrentLoggedInUser] = useState(null)
   const [unreadChats, setUnreadChats] = useState(false)
   const [lastNot, setLastNot] = useState(false)
@@ -75,7 +75,7 @@ function BottomTabs(props) {
                       <Image source={require('../../assets/plus-2-math.png')} style={[styles.icon,styles.activeTab]} />
                     : <Image source={require('../../assets/plus-2-math.png')} style={styles.icon} />
                 )
-            }}
+            }}            
         />
 
         {
