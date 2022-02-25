@@ -48,7 +48,7 @@ const PostHeader = ({ post }) => {
                     alignItems: 'center'
                 }}>
             <View style={{ flexDirection: 'row',alignItems: 'center'}}>
-                <Image source={{uri: post.profile_image}} style={styles.profilePic} />
+                <Image source={{uri: post.profile_picture}} style={styles.profilePic} />
                 <Text style={styles.text}>{ post.username }</Text>
             </View>
 

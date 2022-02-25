@@ -18,7 +18,7 @@ export default function FormikPostUploader({ navigation }) {
   const [thumbnailUrl,setThumbnailUrl] = useState(null)
   const [currentLoggedInUser,setCurrentLoggedInUser] = useState(null)
 
-  const getUsername = () => {
+  const getUser = () => {
     const user = auth.currentUser;
 
     const docRef = doc(db, "users", user.email);
@@ -34,7 +34,7 @@ export default function FormikPostUploader({ navigation }) {
   }
   
   useEffect( () => {
-    getUsername()
+    getUser()
   },[])
 
   const uploadPost = async (imageUrl,caption) => {

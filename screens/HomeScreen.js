@@ -7,8 +7,6 @@ import Stories from '../components/home/Stories';
 import { onSnapshot,collectionGroup, orderBy,query } from "firebase/firestore";
 import { db } from '../firebase'
 
-import BottomTabs from '../components/home/BottomTabs'
-
 function HomeScreen({navigation}) {
   const [posts,setPosts] = useState([])
 
