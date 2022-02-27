@@ -5,9 +5,14 @@ import Post from '../components/home/Post';
 import Header from '../components/home/Header';
 import Stories from '../components/home/Stories';
 import { onSnapshot,collectionGroup, orderBy,query } from "firebase/firestore";
-import { db } from '../firebase'
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
 
-function HomeScreen({navigation}) {
+import { db } from '../firebase'
+import { fetchUser,fetchUserPosts } from '../redux/actions/index';
+
+function HomeScreen(props) {
+  const navigation = props.navigation;
   const [posts,setPosts] = useState([])
 
   useEffect( () => {
@@ -17,6 +22,7 @@ function HomeScreen({navigation}) {
     })
   },[])
 
+  
   return (
     <View style={styles.container}>
         <Header navigation={navigation} />
@@ -37,4 +43,9 @@ const styles = StyleSheet.create({
   }
 });
 
-export default HomeScreen;
+const mapStateToProps = (store) => ({
+  currentUser: store.userState.currentUser    
+})
+const mapDispatchProps = (dispatch) => bindActionCreators({ fetchUser,fetchUserPosts }, dispatch);
+
+export default connect(mapStateToProps, mapDispatchProps)(HomeScreen);

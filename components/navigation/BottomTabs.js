@@ -3,9 +3,6 @@ import { StyleSheet, Image } from 'react-native'
 import React,{ useState,useEffect } from 'react'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
-import { reload } from '../../redux/actions/index';
 
 import * as Notifications from 'expo-notifications';
 
@@ -14,6 +11,7 @@ import Media from '../Add/Media'
 import NewPostScreen from '../../screens/NewPostScreen';
 import ProfileScreen from '../../screens/ProfileScreen';
 import { auth, db } from '../../firebase';
+import Search from '../home/Search';
 
 const Tab = createBottomTabNavigator();
 
@@ -66,6 +64,19 @@ function BottomTabs({navigation}) {
                 )
             }}
         />
+
+        <Tab.Screen 
+            name="Search" 
+            component={Search} 
+            options={{  
+                tabBarIcon: ({ focused, color, size }) => (
+                    focused ? 
+                      <Image source={require('../../assets/search.png')} style={[styles.icon,styles.activeTab]} />
+                    : <Image source={require('../../assets/search-inactive.png')} style={styles.icon} />
+                )
+            }}
+        />
+
         <Tab.Screen 
             name="Media" 
             component={Media} 
@@ -83,6 +94,12 @@ function BottomTabs({navigation}) {
             <Tab.Screen 
                 name="ProfileScreen"
                 component={ProfileScreen}
+                listeners={({ navigation }) => ({
+                    tabPress: event => {
+                        event.preventDefault();
+                        navigation.navigate("BottomTabs",{screen: "ProfileScreen",params: {email: auth.currentUser.email}})
+                    }
+                })}
                 options={{  
                     tabBarIcon: ({ focused, color, size }) => (                     
                         <Image source={{uri: currentLoggedInUser.profilePicture}} style={styles.profilePic} />
@@ -112,11 +129,4 @@ const styles = StyleSheet.create({
     }
 })
 
-const mapStateToProps = (store) => ({
-    currentUser: store.userState.currentUser,
-    chats: store.userState.chats,
-    friendsRequestsReceived: store.userState.friendsRequestsReceived,
-})
-const mapDispatchProps = (dispatch) => bindActionCreators({ reload }, dispatch);
-
-export default connect(mapStateToProps, mapDispatchProps)(BottomTabs);
+export default BottomTabs;
