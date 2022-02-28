@@ -1,7 +1,5 @@
-import React,{ useState,useEffect } from 'react';
-import { StyleSheet } from 'react-native';
+import React,{ useState } from 'react';
 import Screen from './components/Screen';
-import { onAuthStateChanged } from "firebase/auth";
 import { auth } from './firebase'
 import { Provider } from 'react-redux';
 import { applyMiddleware, createStore } from 'redux';
@@ -10,23 +8,22 @@ import thunk from 'redux-thunk';
 import SignedInStack from './components/navigation/SignedInStack';
 import SignedoutStack from './components/navigation/SignedoutStack';
 import rootReducer from './redux/reducers'
+import { onAuthStateChanged } from 'firebase/auth';
  
 function App() {
-  const [currentUser,setCurrentUser] = useState(null);
   const store = createStore(rootReducer, applyMiddleware(thunk))
+  const [loggedIn,setLoggedIn] = useState(false)
 
-  useEffect(() => {
-    onAuthStateChanged(auth, (user) => {
-        if (user) {          
-            setCurrentUser(user)
-        }
-    })
-  },[]);
-  
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      setLoggedIn(true)
+    }
+  });
+
   return (
     <Screen>                      
       {
-        currentUser ? 
+        loggedIn ? 
           <Provider store={store}>
             <SignedInStack />
           </Provider> 

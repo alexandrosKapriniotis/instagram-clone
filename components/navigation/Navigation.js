@@ -24,9 +24,7 @@ const SignedInStack = () => (
       <Stack.Navigator initialRouteName='HomeScreen' screenOptions={screenOptions}>
         <Stack.Screen name="BottomTabs" component={BottomTabs} />
         <Stack.Screen name="Save" component={Save} />
-        <Stack.Screen name="NewPostScreen" component={NewPostScren} />
-        <Stack.Screen name="LoginScreen" component={LoginScreen} />
-        <Stack.Screen name="SignupScreen" component={SignupScreen} />
+        <Stack.Screen name="NewPostScreen" component={NewPostScren} />        
       </Stack.Navigator>
     </NavigationContainer>   
   </Provider>   

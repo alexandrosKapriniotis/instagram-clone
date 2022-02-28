@@ -3,9 +3,9 @@ import { View, StyleSheet, TextInput, Text, Pressable, TouchableOpacity,Alert } 
 import { Formik } from 'formik';
 import * as yup from 'yup';
 import Validator from 'email-validator';
-import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword } from "firebase/auth";
 
-import { firebaseApp } from '../../firebase';
+import { auth } from '../../firebase';
 
 function LoginForm({navigation}) {
   const LoginFormSchema = yup.object().shape({
@@ -13,15 +13,10 @@ function LoginForm({navigation}) {
     password: yup.string().required().min(6,'Your password has to have at least 6 characters')
   });
 
-  const onLogin = (email,password) => {
-    
-    const auth = getAuth(firebaseApp);
-
+  const onLogin = (email,password) => {        
     signInWithEmailAndPassword(auth, email, password)
         .then((userCredential) => {
-            const user = userCredential.user;
-
-            navigation.push('HomeScreen')
+            const user = userCredential.user;            
         })
         .catch((error) => {
             Alert.alert(

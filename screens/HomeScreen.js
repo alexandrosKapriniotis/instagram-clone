@@ -16,13 +16,30 @@ function HomeScreen(props) {
   const [posts,setPosts] = useState([])
 
   useEffect( () => {
-    onSnapshot(query(collectionGroup(db, 'posts'),orderBy('createdAt','desc')),snapshot => {      
-      setPosts(snapshot.docs.map(doc => (
-        { id: doc.id, ...doc.data() })))
-    })
-  },[])
+    // onSnapshot(query(collectionGroup(db, 'posts'),orderBy('createdAt','desc')),snapshot => {      
+    //   setPosts(snapshot.docs.map(doc => (
+    //     { id: doc.id, ...doc.data() })))
+    // })
+    let posts = [];
 
-  
+    if (props.usersLoaded == props.following.length) {
+      for(let i=0;i < props.following.length; i++) {
+        const user = props.users.find(el => el.uid === props.following[i]);
+
+        if(user != undefined){
+          posts = [...posts, ...user.posts];
+        }
+      }
+
+      posts.sort((x,y) => {
+        return x.creation - y.creation;
+      });
+
+      setPosts(posts);
+    }
+  },[props.usersLoaded])
+
+  console.log(posts)
   return (
     <View style={styles.container}>
         <Header navigation={navigation} />
@@ -44,8 +61,10 @@ const styles = StyleSheet.create({
 });
 
 const mapStateToProps = (store) => ({
-  currentUser: store.userState.currentUser    
+  currentUser: store.userState.currentUser,
+  following: store.userState.following,
+  users: store.usersState.users,
+  usersLoaded: store.usersState.users    
 })
-const mapDispatchProps = (dispatch) => bindActionCreators({ fetchUser,fetchUserPosts }, dispatch);
 
-export default connect(mapStateToProps, mapDispatchProps)(HomeScreen);
+export default connect(mapStateToProps, null)(HomeScreen);

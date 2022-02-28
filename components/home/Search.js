@@ -19,7 +19,8 @@ const Search = (props) => {
             const id = doc.id;
             return { id, ...data }
         })   
-        setUsers(users);             
+        setUsers(users);
+                     
     }).catch((err) => {
         console.error("Failed to retrieve data", err);
     });
@@ -38,7 +39,7 @@ const Search = (props) => {
         data={users}
         renderItem={({item}) => (
             <TouchableOpacity 
-                onPress={() => props.navigation.navigate('BottomTabs',{screen: "ProfileScreen",params: {email: item.email}})}
+                onPress={() => props.navigation.navigate('BottomTabs',{screen: "ProfileScreen",params: {uid: item.owner_uid}})}
             >
                 <Text>{item.username}</Text>
             </TouchableOpacity>

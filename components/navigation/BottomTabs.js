@@ -2,7 +2,6 @@
 import { StyleSheet, Image } from 'react-native'
 import React,{ useState,useEffect } from 'react'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { doc, onSnapshot } from 'firebase/firestore';
 
 import * as Notifications from 'expo-notifications';
 
@@ -12,34 +11,30 @@ import NewPostScreen from '../../screens/NewPostScreen';
 import ProfileScreen from '../../screens/ProfileScreen';
 import { auth, db } from '../../firebase';
 import Search from '../home/Search';
+import { doc,onSnapshot } from 'firebase/firestore';
 
 const Tab = createBottomTabNavigator();
 
-function BottomTabs({navigation}) {
+function BottomTabs({navigation,user}) {
   const [currentLoggedInUser,setCurrentLoggedInUser] = useState(null)
   const [unreadChats, setUnreadChats] = useState(false)
   const [lastNot, setLastNot] = useState(false)
 
   const lastNotificationResponse = Notifications.useLastNotificationResponse();
-
-  const getUser = () => {
-    const user = auth.currentUser;
-
-    const docRef = doc(db, "users", user.email);
-    
-    const unsubscribe = onSnapshot(docRef,doc => {   
-        
-        setCurrentLoggedInUser({
-            username: doc.data().username,
-            profilePicture: doc.data().profile_picture,
-            email: user.email
-        })   
-    })
-    return unsubscribe;
-  }
-  
+ 
   useEffect( () => {
-    getUser()
+    const user = auth.currentUser;
+    const docRef = doc(db, "users", auth.currentUser.uid);
+    
+    return onSnapshot(docRef,doc => {   
+        if (doc.exists()){
+            setCurrentLoggedInUser({
+                username: doc.data().username,
+                profilePicture: doc.data().profile_picture,
+                email: user.email
+            })  
+        }         
+    })
   },[])
 
   return (    
@@ -97,7 +92,7 @@ function BottomTabs({navigation}) {
                 listeners={({ navigation }) => ({
                     tabPress: event => {
                         event.preventDefault();
-                        navigation.navigate("BottomTabs",{screen: "ProfileScreen",params: {email: auth.currentUser.email}})
+                        navigation.navigate("BottomTabs",{screen: "ProfileScreen",params: {uid: auth.currentUser.uid}})
                     }
                 })}
                 options={{  

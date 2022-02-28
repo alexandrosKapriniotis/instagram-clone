@@ -8,14 +8,14 @@ import { arrayRemove, arrayUnion, collection, doc,updateDoc,collectionGroup } fr
 const Post = ({ post }) => {
   
   const handleLike = () => {
-    const currentLikeStatus = !post.likes_by_users.includes(auth.currentUser.email);
+    const currentLikeStatus = !post.likes_by_users.includes(auth.currentUser.uid);
 
     const postRef = collection(db, "users", post.owner_email, "posts");
 
     updateDoc(doc(postRef,post.id), {
         likes_by_users: currentLikeStatus 
-            ? arrayUnion(auth.currentUser.email) 
-            : arrayRemove(auth.currentUser.email)
+            ? arrayUnion(auth.currentUser.uid) 
+            : arrayRemove(auth.currentUser.uid)
     }).then( () => {
         console.log('Document successfully added')
     }).catch( error => {
@@ -77,7 +77,7 @@ const PostFooter = ({handleLike,post}) => {
                         <Image 
                             style={{width: 26,height: 25}} 
                             source={  
-                                post.likes_by_users.includes(auth.currentUser.email) 
+                                post.likes_by_users.includes(auth.currentUser.uid) 
                                 ? require("../../assets/heart-full.png")
                                 : require("../../assets/like--v1.png")} 
                         />

@@ -9,7 +9,7 @@ import LoginScreen from './../../screens/LoginScreen';
 import SignupScreen from './../../screens/SignupScreen';
 import BottomTabs from './BottomTabs';
 import Save from '../Add/Save';
-import { fetchUser,fetchUserPosts } from '../../redux/actions/index';
+import { fetchUser,fetchUserPosts,fetchUserFollowing } from '../../redux/actions/index';
 
 const SignedInStack = (props) => {
     const Stack = createStackNavigator();
@@ -21,11 +21,12 @@ const SignedInStack = (props) => {
     useEffect(() => {
         props.fetchUser();
         props.fetchUserPosts();
+        props.fetchUserFollowing();        
     },[])
 
   return (
     <NavigationContainer>
-        <Stack.Navigator initialRouteName='HomeScreen' screenOptions={screenOptions}>
+        <Stack.Navigator initialRouteName='BottomTabs' screenOptions={screenOptions}>
             <Stack.Screen name="BottomTabs" component={BottomTabs} />
             <Stack.Screen name="Save" component={Save} />
             <Stack.Screen name="NewPostScreen" component={NewPostScren} />
@@ -36,6 +37,6 @@ const SignedInStack = (props) => {
   )
 }
 
-const mapDispatchProps = (dispatch) => bindActionCreators({ fetchUser,fetchUserPosts }, dispatch);
+const mapDispatchProps = (dispatch) => bindActionCreators({ fetchUser,fetchUserPosts,fetchUserFollowing }, dispatch);
   
 export default connect(null, mapDispatchProps)(SignedInStack)

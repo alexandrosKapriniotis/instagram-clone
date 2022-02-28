@@ -27,7 +27,7 @@ function signupForm({navigation}) {
 
   const saveUser = async (user) => {
     try {
-        await setDoc(doc(db, "users",user.email), {
+        await setDoc(doc(db, "users",user.uid), {
             owner_uid: user.uid,
             username: user.username,
             email: user.email,
@@ -50,8 +50,6 @@ function signupForm({navigation}) {
         const user = userCredential.user;
 
         saveUser({uid: user.uid,email: user.email,username});
-        
-        navigation.push('HomeScreen')
       })
       .catch((error) => {
         const errorMessage = error.message;
