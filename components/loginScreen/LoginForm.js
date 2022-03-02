@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { View, StyleSheet, TextInput, Text, Pressable, TouchableOpacity,Alert } from 'react-native';
 import { Formik } from 'formik';
 import * as yup from 'yup';
@@ -13,10 +13,11 @@ function LoginForm({navigation}) {
     password: yup.string().required().min(6,'Your password has to have at least 6 characters')
   });
 
+
   const onLogin = (email,password) => {        
     signInWithEmailAndPassword(auth, email, password)
         .then((userCredential) => {
-            const user = userCredential.user;            
+            const user = userCredential.user; 
         })
         .catch((error) => {
             Alert.alert(

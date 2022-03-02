@@ -7,9 +7,10 @@ import {  bindActionCreators } from 'redux';
 import NewPostScren from './../../screens/NewPostScreen';
 import LoginScreen from './../../screens/LoginScreen';
 import SignupScreen from './../../screens/SignupScreen';
+import CommentsScreen from '../../screens/CommentsScreen';
 import BottomTabs from './BottomTabs';
 import Save from '../Add/Save';
-import { fetchUser,fetchUserPosts,fetchUserFollowing } from '../../redux/actions/index';
+import { fetchUser,fetchUserPosts,fetchUserFollowing,clearData } from '../../redux/actions/index';
 
 const SignedInStack = (props) => {
     const Stack = createStackNavigator();
@@ -19,6 +20,7 @@ const SignedInStack = (props) => {
     }
 
     useEffect(() => {
+        props.clearData();
         props.fetchUser();
         props.fetchUserPosts();
         props.fetchUserFollowing();        
@@ -29,14 +31,14 @@ const SignedInStack = (props) => {
         <Stack.Navigator initialRouteName='BottomTabs' screenOptions={screenOptions}>
             <Stack.Screen name="BottomTabs" component={BottomTabs} />
             <Stack.Screen name="Save" component={Save} />
-            <Stack.Screen name="NewPostScreen" component={NewPostScren} />
+            <Stack.Screen name="NewPostScreen" component={NewPostScren} />            
             <Stack.Screen name="LoginScreen" component={LoginScreen} />
-            <Stack.Screen name="SignupScreen" component={SignupScreen} />
+            <Stack.Screen name="CommentsScreen" component={CommentsScreen} />        
         </Stack.Navigator>
     </NavigationContainer>    
   )
 }
 
-const mapDispatchProps = (dispatch) => bindActionCreators({ fetchUser,fetchUserPosts,fetchUserFollowing }, dispatch);
+const mapDispatchProps = (dispatch) => bindActionCreators({ fetchUser,fetchUserPosts,fetchUserFollowing,clearData }, dispatch);
   
 export default connect(null, mapDispatchProps)(SignedInStack)

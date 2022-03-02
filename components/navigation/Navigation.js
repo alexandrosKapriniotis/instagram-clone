@@ -11,13 +11,14 @@ import LoginScreen from '../../screens/LoginScreen';
 import SignupScreen from '../../screens/SignupScreen';
 import BottomTabs from './BottomTabs';
 import Save from '../Add/Save';
-import { fetchUser,fetchUserPosts } from '../../redux/actions/index';
 
 const Stack = createStackNavigator();
 const store = createStore(rootReducer, applyMiddleware(thunk))
+
 const screenOptions = {
     headerShown: false
 }
+
 const SignedInStack = () => (
   <Provider store={store}>
     <NavigationContainer>
@@ -39,9 +40,4 @@ export const SignedoutStack = () => (
   </NavigationContainer>      
 )
 
-const mapStateToProps = (store) => ({  
-  currentUser: store.userState.currentUser
-})
-const mapDispatchProps = (dispatch) => bindActionCreators({ fetchUser,fetchUserPosts }, dispatch);
-
-export default connect(mapStateToProps, mapDispatchProps)(SignedInStack)
+export default SignedInStack

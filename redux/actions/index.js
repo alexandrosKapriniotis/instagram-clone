@@ -1,7 +1,15 @@
-import { USER_STATE_CHANGE,USER_POSTS_STATE_CHANGE,USER_FOLLOWING_STATE_CHANGE, USERS_DATA_STATE_CHANGE, USERS_POSTS_STATE_CHANGE } from '../constants';
+import { USER_STATE_CHANGE,USER_POSTS_STATE_CHANGE,USER_FOLLOWING_STATE_CHANGE, USERS_DATA_STATE_CHANGE, USERS_POSTS_STATE_CHANGE, CLEAR_DATA } from '../constants';
 
 import { auth,db } from '../../firebase';
 import { collection, doc, getDocs,getDoc, onSnapshot, query, orderBy } from "firebase/firestore";
+
+let unsubscribe = [];
+
+export function clearData() {
+    return ((dispatch) => {
+        dispatch({type: CLEAR_DATA})
+    })
+}
 
 export function fetchUser() {
     return ((dispatch) => {
@@ -28,7 +36,7 @@ export function fetchUserPosts() {
 
         const docRef = doc(db, "posts", auth.currentUser.uid);
         
-        getDocs(query(collection(docRef,"userPosts"),orderBy("creation","asc"))).then((snapshot) => {
+        getDocs(query(collection(docRef,"userPosts"),orderBy("creation","desc"))).then((snapshot) => {
             
             let posts = snapshot.docs.map(doc => {
                 const data = doc.data();
@@ -56,25 +64,24 @@ export function fetchUserFollowing() {
                 const id = doc.id;
                 return id;
             });
-
             dispatch({ 
                 type: USER_FOLLOWING_STATE_CHANGE, 
                 following 
             })
             
-            for (let i = 0; i < following.length; i++) {
-                dispatch(fetchUsersData(following[i]));
+            for (let i = 0; i < following.length; i++) {                
+                dispatch(fetchUsersData(following[i],true));
             }
         })                                                                       
     })
 }
 
-export function fetchUsersData(uid) {
+export function fetchUsersData(uid,getPosts) {
     return ((dispatch,getState) => {
         
         const found = getState().usersState.users.some(el => el.uid === uid);
-
-        if (!found) {
+        
+        if (!found) {            
             const usersRef = doc(db, "users", uid);
 
             getDoc(usersRef).then((snapshot) => {                    
@@ -82,12 +89,14 @@ export function fetchUsersData(uid) {
                     let user = snapshot.data();
                     user.uid = snapshot.id;
 
-                    dispatch({ type: USERS_DATA_STATE_CHANGE, user });
-                    dispatch(fetchUsersFollowingPosts(user.id));                    
+                    dispatch({ type: USERS_DATA_STATE_CHANGE, user });                                       
                 } else {
                     console.log('does not exist')
                 }
             })                
+            if (getPosts) {
+                dispatch(fetchUsersFollowingPosts(uid));
+            }
         }
     });
 }
@@ -97,15 +106,17 @@ export function fetchUsersFollowingPosts(uid) {
 
         const docRef = doc(db, "posts", uid);
         getDocs(query(collection(docRef,"userPosts"),orderBy("creation","asc"))).then((snapshot) => {
-            const uid = snapshot.query.EP.path.segments[1];
-            const user = getState().usersStates.users.find(el => el.uid === uid);
+            // const uid = snapshot.query.EP.path.segments[1];
+            const uid = snapshot.docs[0].ref.path.split('/')[1];
+
+            const user = getState().usersState.users.find(el => el.uid === uid);
 
             let posts = snapshot.docs.map(doc => {
                 const data = doc.data();
                 const id = doc.id;
                 return { id, ...data, user }
             })
-               
+            
             dispatch({ 
                 type: USERS_POSTS_STATE_CHANGE, 
                 posts,
@@ -121,6 +132,7 @@ export function fetchUsersFollowingPosts(uid) {
 export function reload() {
     return ((dispatch) => {
         dispatch(fetchUser()),
-        dispatch(fetchUserPosts())    
+        dispatch(fetchUserPosts()),
+        dispatch(fetchUserFollowing())    
     })
 }

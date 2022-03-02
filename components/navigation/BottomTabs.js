@@ -9,9 +9,12 @@ import HomeScreen from '../../screens/HomeScreen';
 import Media from '../Add/Media'
 import NewPostScreen from '../../screens/NewPostScreen';
 import ProfileScreen from '../../screens/ProfileScreen';
+import CommentsScreen from '../../screens/CommentsScreen';
+
 import { auth, db } from '../../firebase';
 import Search from '../home/Search';
 import { doc,onSnapshot } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 
 const Tab = createBottomTabNavigator();
 
@@ -21,21 +24,31 @@ function BottomTabs({navigation,user}) {
   const [lastNot, setLastNot] = useState(false)
 
   const lastNotificationResponse = Notifications.useLastNotificationResponse();
- 
-  useEffect( () => {
-    const user = auth.currentUser;
-    const docRef = doc(db, "users", auth.currentUser.uid);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+        if (user) {     
+            try {
+                const docRef = doc(db, "users", user.uid);
     
-    return onSnapshot(docRef,doc => {   
-        if (doc.exists()){
-            setCurrentLoggedInUser({
-                username: doc.data().username,
-                profilePicture: doc.data().profile_picture,
-                email: user.email
-            })  
-        }         
-    })
+                return onSnapshot(docRef,doc => {   
+                    if (doc.exists()){
+                        setCurrentLoggedInUser({
+                            username: doc.data().username,
+                            profilePicture: doc.data().profile_picture,
+                            email: user.email
+                        })  
+                    }         
+                })
+            } catch (error) {
+                console.log(error)
+            }     
+        }
+      });
+
+      return unsubscribe;
   },[])
+
 
   return (    
     <Tab.Navigator
@@ -88,7 +101,7 @@ function BottomTabs({navigation,user}) {
             currentLoggedInUser &&
             <Tab.Screen 
                 name="ProfileScreen"
-                component={ProfileScreen}
+                component={ProfileScreen}                
                 listeners={({ navigation }) => ({
                     tabPress: event => {
                         event.preventDefault();
@@ -101,8 +114,7 @@ function BottomTabs({navigation,user}) {
                     )
                 }}
             />
-        }
-        
+        }        
     </Tab.Navigator>    
   )
 }

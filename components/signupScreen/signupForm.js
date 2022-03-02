@@ -50,6 +50,7 @@ function signupForm({navigation}) {
         const user = userCredential.user;
 
         saveUser({uid: user.uid,email: user.email,username});
+        navigation.goBack();
       })
       .catch((error) => {
         const errorMessage = error.message;

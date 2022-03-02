@@ -4,6 +4,7 @@ import { connect } from 'react-redux';
 import { collection, doc, getDocs,getDoc,setDoc, deleteDoc } from "firebase/firestore";
 
 import { auth,db } from '../firebase';
+import { signOut } from 'firebase/auth';
 
 const ProfileScreen = (props) => {
   const [userPosts,setUserPosts] = useState([]);
@@ -24,7 +25,9 @@ const ProfileScreen = (props) => {
           } else {
               console.log('does not exist')
           }
-      })
+      }).catch((err) => {
+        console.error("Failed to retrieve data", err);
+      });
     
       const postDocRef = doc(db, "posts", props.route.params.uid); 
               
@@ -62,6 +65,15 @@ const ProfileScreen = (props) => {
     deleteDoc(doc(collection(postDocRef,"userFollowing"),props.route.params.uid));    
   }
 
+  const onLogout = () => {
+    signOut(auth).then(() => {
+      console.log('Sign-out successful.');
+      props.navigation.push('LoginScreen')
+    }).catch((error) => {
+      console.log(error.message)
+    });
+  }
+
   
   if (user === null) {
     return <View />
@@ -83,7 +95,10 @@ const ProfileScreen = (props) => {
                   onPress={() => onFollow()}
                   />)}
           </View>
-        ) : null }
+        ) : <Button 
+          title='Logout'
+          onPress={() => onLogout()}
+          /> }
       </View>
 
       <View style={styles.containerGallery}>

@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Image, TextInput,Button } from 'react-native';
 
+import { bindActionCreators } from 'redux';
+import { connect } from 'react-redux';
+import { fetchUserPosts } from '../../redux/actions/index';
 import { storage,auth,db } from '../../firebase'
 import { ref, uploadBytesResumable,getDownloadURL } from "firebase/storage";
 import { serverTimestamp,collection,setDoc,doc } from 'firebase/firestore';
@@ -45,6 +48,7 @@ function Save(props) {
         caption,
         creation: serverTimestamp()
     }).then((function () {
+        props.fetchUserPosts()
         navigation.navigate('BottomTabs',{ screen: 'Home'});
     }));
       
@@ -54,6 +58,7 @@ function Save(props) {
     <View style={styles.container}>
         <Image source={{uri: image}} />
         <TextInput 
+            style={styles.caption}
             placeholder="Write a Caption . . ."
             onChangeText={(caption) => {setCaption(caption)}}
         />
@@ -65,7 +70,20 @@ function Save(props) {
 const styles = StyleSheet.create({
   container: {
       flex: 1
+  },
+  caption: {
+    padding: 10,    
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 150,
+    backgroundColor: '#FFF'
   }
 });
 
-export default Save;
+const mapStateToProps = (store) => ({
+  currentUser: store.userState.currentUser
+})
+
+const mapDispatchProps = (dispatch) => bindActionCreators({ fetchUserPosts }, dispatch);
+
+export default connect(mapStateToProps, mapDispatchProps)(Save);
