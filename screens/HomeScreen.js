@@ -1,4 +1,4 @@
-import React, { useEffect,useState } from 'react';
+import React, { useEffect,useState,useRef } from 'react';
 import { FlatList, RefreshControl, Text, View,StyleSheet } from 'react-native';
 // import BottomSheet from 'react-native-bottomsheet-reanimated'
 import { TouchableOpacity } from 'react-native-gesture-handler';
@@ -14,7 +14,13 @@ import Stories from '../components/home/Stories';
 function HomeScreen(props) {
   const navigation = props.navigation;
   const [posts,setPosts] = useState([])
-  
+  const [refreshing, setRefreshing] = useState(false)
+  const [unmutted, setUnmutted] = useState(null)
+  const [inViewPort, setInViewPort] = useState(0)
+  const [sheetRef, setSheetRef] = useState(useRef(null))
+  const [modalShow, setModalShow] = useState({ visible: false, item: null })
+  const [isValid, setIsValid] = useState(true);
+
   useEffect( () => {    
     let posts = [];
     
@@ -35,6 +41,12 @@ function HomeScreen(props) {
       return setPosts(posts);
     }
   },[props.usersFollowingLoaded])
+
+  const onViewableItemsChanged = useRef(({ viewableItems, changed }) => {
+    if (changed && changed.length > 0) {
+        setInViewPort(changed[0].index);
+    }
+  });
 
   return (
     <View style={styles.container}>
@@ -67,11 +79,6 @@ function HomeScreen(props) {
                     </View>
                 )}
             />        
-        {/* <ScrollView>
-          { 
-            posts.map( (post,index) => (<Post post={post} key={index} />) )
-          }          
-        </ScrollView>           */}
         <Text
           onPress={() => 
             navigation.navigate('Comment',

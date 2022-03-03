@@ -1,21 +1,133 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet,Text,Image, TouchableOpacity } from 'react-native';
-import { Divider } from 'react-native-elements';
-import { Entypo, MaterialCommunityIcons } from '@expo/vector-icons';
-import { auth, db } from '../../firebase';
-import { arrayRemove, arrayUnion, collection, doc,updateDoc,collectionGroup } from 'firebase/firestore';
-import { useNavigation } from '@react-navigation/native';
+import { Divider, Snackbar } from 'react-native-paper';
+import { arrayRemove, arrayUnion, collection, doc,getDoc,onSnapshot,updateDoc } from 'firebase/firestore';
+import { useNavigation,useIsFocused } from '@react-navigation/native';
+import BottomSheet from 'reanimated-bottom-sheet';
+import ParsedText from 'react-native-parsed-text';
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
+import { Entypo, Feather, FontAwesome5 } from '@expo/vector-icons';
 
 import { fetchUserPosts } from '../../redux/actions';
 import { container,text,utils } from '../styles';
 import { timeDifference } from '../utils';
+import CachedImage from '../CachedImage';
 
 const Post = (props) => {
   
   const post = props.post;
+  const [item, setItem] = useState(props.route.params.item)
   const [user, setUser] = useState(props.route.params.user)
+  const [currentUserLike, setCurrentUserLike] = useState(false)
+  const [unmutted, setUnmutted] = useState(true)
+  const [videoref, setvideoref] = useState(null)
+  const [sheetRef, setSheetRef] = useState(useRef(null))
+  const [modalShow, setModalShow] = useState({ visible: false, item: null })
+  const [isValid, setIsValid] = useState(true);
+  const [exists, setExists] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
   const navigation = useNavigation();
   
+  const isFocused = useIsFocused();
+    useEffect(() => {
+
+        if (props.route.params.notification != undefined) {
+            const userDoc = doc(db,"users",props.route.params.user);
+            // firebase.firestore()
+            //     .collection("users")
+            //     .doc(props.route.params.user)
+            //     .get()
+            //     .then((snapshot) => {
+            //         if (snapshot.exists) {
+            //             let user = snapshot.data();
+            //             user.uid = snapshot.id;
+
+            //             setUser(user)
+            //         }
+            //     })
+            getDoc(userDoc).then((snapshot) => {
+                if (snapshot.exists) {
+                    let user = snapshot.data();
+                    user.uid = snapshot.id;
+
+                    setUser(user)
+                }
+            }).catch( error => console.log(error))
+
+            const userPostsRef = collection(db,"posts",props.route.params.user,"userPosts");    
+            const userPostRef = doc(userPostsRef, props.route.params.item);
+            getDoc(userPostRef).then((snapshot) => {
+                if (snapshot.exists) {
+                    let post = snapshot.data();
+                    post.id = snapshot.id;
+
+                    setItem(post)
+                    setLoaded(true)
+                    setExists(true)
+                }
+            }).catch( error => console.log(error))
+
+            const likesRef = collection(userPostsRef,props.route.params.item,"likes");
+            const currentUserDocRef = doc(likesRef, auth.currentUser.uid);
+
+            onSnapshot(currentUserDocRef,snapshot => {   
+                let currentUserLike = false;
+                if (snapshot.exists) {
+                    currentUserLike = true;
+                }
+                setCurrentUserLike(currentUserLike)       
+            })
+        }
+        else {
+            // .collection("posts")
+            //     .doc(props.route.params.user.uid)
+            //     .collection("userPosts")
+            //     .doc(props.route.params.item.id)
+            //     .collection("likes")
+            //     .doc(firebase.auth().currentUser.uid)
+            //     .onSnapshot
+            // const userPostsCollectionRef = collection(db,"posts",props.route.params.uid,"userPosts");
+            // const likesCollectionRef  = collection(userPostsCollectionRef,props.route.params.item.id,"likes");
+            
+            // console.log(likesCollectionRef);
+            // getDoc(db,likesCollectionRef,auth.currentUser.uid).then(snapshot => console.log(snapshot.exists)).catch(error => console.log(error))
+            // onSnapshot(doc(likesCollectionRef,auth.currentUser.uid),(snapshot) => {
+            //     let currentUserLike = false;
+            //     if (snapshot.exists) {
+            //         currentUserLike = true;
+            //     }
+            //     setCurrentUserLike(currentUserLike)
+            // });
+
+            setItem(props.route.params.item)
+            setUser(props.route.params.user)
+            setLoaded(true)
+            setExists(true)
+        }
+
+    }, [props.route.params.notification, props.route.params.item])
+
+    useEffect(() => {
+        if (videoref !== null) {
+            videoref.setIsMutedAsync(props.route.params.unmutted)
+        }
+        setUnmutted(props.route.params.unmutted)
+    }, [props.route.params.unmutted])
+
+    useEffect(() => {
+        if (videoref !== null) {
+            if (isFocused) {
+                videoref.playAsync()
+            } else {
+                videoref.stopAsync()
+
+            }
+        }
+
+    }, [props.route.params.index, props.route.params.inViewPort])
+
   const handleLike = () => {
     const currentLikeStatus = !post.likes_by_users?.includes(auth.currentUser.uid);  
     const postRef = collection(db, "users", post.owner_email, "posts");
@@ -34,6 +146,61 @@ const Post = (props) => {
   const handleComment = (post) => {       
       navigation.navigate('CommentsScreen',{ postId: post.id, uid: auth.currentUser.uid }) 
   }
+
+  const onUsernamePress = (username, matchIndex) => {
+    props.navigation.navigate("ProfileOther", { username, uid: undefined })
+}
+
+const onLikePress = (userId, postId, item) => {
+    
+}
+const onDislikePress = (userId, postId, item) => {
+    
+}
+if (!exists && loaded) {
+    return (
+        <View style={{ height: '100%', justifyContent: 'center', margin: 'auto' }}>
+            <FontAwesome5 style={{ alignSelf: 'center', marginBottom: 20 }} name="dizzy" size={40} color="black" />
+            <Text style={[text.notAvailable]}>Post does not exist</Text>
+        </View>
+    )
+}
+if (!loaded) {
+    return (<View></View>)
+
+}
+if (user == undefined) {
+    return (<View></View>)
+}
+if (item == null) {
+    return (<View />)
+}
+
+const _handleVideoRef = (component) => {
+    setvideoref(component);
+
+    if (component !== null) {
+        component.setIsMutedAsync(props.route.params.unmutted)
+    }
+}
+
+if (videoref !== null) {
+    videoref.setIsMutedAsync(unmutted)
+    if (isFocused && props.route.params.index == props.route.params.inViewPort) {
+        videoref.playAsync()
+    } else {
+        videoref.stopAsync()
+    }
+}
+
+
+if (sheetRef.current !== null && !props.route.params.feed) {
+    if (modalShow.visible) {
+        sheetRef.snapTo(0)
+    } else {
+        sheetRef.snapTo(1)
+    }
+}
 
   return (
     <View style={[container.container, utils.backgroundWhite]}>
@@ -55,13 +222,13 @@ const Post = (props) => {
                             <Image
                                 style={[utils.profileImageSmall]}
                                 source={{
-                                    uri: user.image
+                                    uri: user.profile_picture
                                 }}
                             />
                         )
                     }
                     <View style={{ alignSelf: 'center' }}>
-                        <Text style={[text.bold, text.medium, { marginBottom: 0 }]} >{user.name}</Text>
+                        <Text style={[text.bold, text.medium, { marginBottom: 0 }]} >{user.username}</Text>
                     </View>
 
                 </TouchableOpacity>
@@ -119,7 +286,6 @@ const Post = (props) => {
                                             setUnmutted(false)
                                         } else {
                                             props.route.params.setUnmuttedMain(false)
-
                                         }
 
                                     } else {
@@ -127,20 +293,17 @@ const Post = (props) => {
                                             setUnmutted(true)
                                         } else {
                                             props.route.params.setUnmuttedMain(true)
-
                                         }
 
                                     }
 
                                 }}>
                                 {!unmutted ?
-
                                     <Feather name="volume-2" size={20} color="white" />
                                     :
                                     <Feather name="volume-x" size={20} color="white" />
                                 }
                             </TouchableOpacity>
-
                         </View>
 
                         :
@@ -272,52 +435,11 @@ const Post = (props) => {
     </View>
 )
 }  
-//   return (
-//     <View style={styles.container}>
-//         <Divider width={1} orientation='vertical' />
-//         <PostHeader post={post} />
-//         <PostImage post={post} />
-//         <View style={{marginHorizontal: 15,marginTop: 10}}>
-//             <PostFooter post={post} handleLike={handleLike} handleComment={handleComment} />
-//             <Likes post={post} />
-//             <Caption post={post} />
-//             <CommentSection post={post} />
-//             {/* <Comments post={post} /> */}
-//         </View>
-//     </View>
-//   );
-// }
 
-const PostHeader = ({ post }) => {
-    return <View 
-                style={{                     
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    margin: 5,
-                    alignItems: 'center'
-                }}>
-            <View style={{ flexDirection: 'row',alignItems: 'center'}}>
-                <Image source={{uri: post.profile_picture}} style={styles.profilePic} />
-                <Text style={styles.text}>{ post.username }</Text>
-            </View>
 
-            <Entypo name="dots-three-horizontal" size={12} color="#FFF" />
-        </View>
-};
 
-const PostImage = ({post}) => (
-    <View 
-        style={{
-            width: '100%',
-            height: 300
-        }}
-    >
-        <Image 
-            source={{uri: post.downloadURL}} 
-            style={{ height: '100%',resizeMode: 'cover'}}
-        />
-    </View>
-);
+
+
 
 const PostFooter = ({handleLike,post,handleComment}) => {
     return <View style={{flexDirection: "row",justifyContent: 'space-between'}}>
@@ -347,51 +469,11 @@ const Icon = ({ iconStyle, iconName, onPress}) => (
     </TouchableOpacity>
 );
 
-const Likes = ({ post }) => (
-    <View style={{flexDirection: 'row',marginTop: 4}}>
-        <Text style={{color: '#FFF',fontWeight: '600'}}>
-            { post.likes_by_users?.length.toLocaleString('en') } likes
-        </Text>
-    </View>
-);
 
-const Caption = ({ post }) => (
-    <View style={{marginTop: 5}}>
-        <Text style={{color: '#FFF'}}>
-            <Text style={{fontWeight: '600',marginRight: 5}}>@alexkap</Text>
-            <Text> { post.caption }</Text>
-        </Text>
-    </View>    
-);
 
-const CommentSection = ({ post }) => (
-    <View style={{marginTop: 5}}>
-        {
-            post.comments && post.comments.length > 0 &&
-            (<Text style={{color:'gray'}}>
-                View { post.comments && post.comments.length > 1 ? 'all ' : ''}
-                { post.comments && post.comments.length > 1 ? 'comments' : 'comment'}
-            </Text>)
-        }
-    </View>
-);
 
-const Comments = ({post}) => (
-    <>
-        { post.comments && post.comments.length > 1 &&
-            post.comments.map((comment,index) => {
-                <View key={index} style={{flexDirection: 'row',marginTop: 10}}>
-                    <Text style={{color:'#FFF'}}>
-                        <Text style={{fontWeight: '600'}}>
-                            {comment.email}
-                        </Text>
-                        { comment.body }
-                    </Text>
-                </View>
-            })
-        }
-    </>
-);
+
+
 
 const styles = StyleSheet.create({
   container: {   
@@ -420,4 +502,13 @@ const styles = StyleSheet.create({
 
 });
 
-export default Post;
+const mapStateToProps = (store) => ({
+    currentUser: store.userState.currentUser,
+    following: store.userState.following,
+    feed: store.usersState.feed,
+    usersFollowingLoaded: store.usersState.usersFollowingLoaded,
+})
+
+const mapDispatchProps = (dispatch) => bindActionCreators({ fetchUserPosts }, dispatch);
+
+export default connect(mapStateToProps, mapDispatchProps)(Post);
