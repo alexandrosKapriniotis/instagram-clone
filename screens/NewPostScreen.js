@@ -1,8 +1,9 @@
 import { StyleSheet, View } from 'react-native'
-import React from 'react'
+import React, { useEffect } from 'react'
 import AddNewPost from '../components/newPost/AddNewPost'
 
 export default function NewPostScreen() {
+
   return (
     <View style={styles.container}>
       <AddNewPost />

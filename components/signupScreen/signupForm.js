@@ -26,18 +26,18 @@ function signupForm({navigation}) {
   }
 
   const saveUser = async (user) => {
-    try {
-        await setDoc(doc(db, "users",user.uid), {
-            owner_uid: user.uid,
-            username: user.username,
-            email: user.email,
-            profile_picture: await getRandomProfilePicture()
-          }).catch(error => {
-            console.log('Something went wrong',error.message)
-          });
-    } catch (error) {
-        console.log('Something went wrong',error.message)
-    }
+    
+    await setDoc(doc(db, "users",user.uid), {
+        owner_uid: user.uid,
+        name: "",
+        username: user.username,
+        email: user.email,
+        profile_picture: await getRandomProfilePicture(),
+        followingCount: 0,
+        followersCount: 0
+        }).catch(error => {
+            setIsValid({ bool: true, boolSnack: true, message: "Something went wrong" })
+        });
     
 }
 

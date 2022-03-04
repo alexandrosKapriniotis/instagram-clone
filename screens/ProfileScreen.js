@@ -1,30 +1,42 @@
-import { View, Text,Image,FlatList,StyleSheet,Button } from 'react-native'
 import React,{ useState,useEffect } from 'react'
-import { connect } from 'react-redux';
+import { ActivityIndicator, FlatList, Image, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
 import { collection, doc, getDocs,getDoc,setDoc, deleteDoc } from "firebase/firestore";
+import { FontAwesome5 } from '@expo/vector-icons';
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
 
+import { sendNotification } from '../redux/actions/index';
+import { container, text, utils } from '../components/styles';
+import CachedImage from '../components/CachedImage';
 import { auth,db } from '../firebase';
 import { signOut } from 'firebase/auth';
 
 const ProfileScreen = (props) => {
   const [userPosts,setUserPosts] = useState([]);
   const [user,setUser] = useState(null);
-  const { currentUser, posts } = props;
+  const [loading, setLoading] = useState(true);
   const [following, setFollowing] = useState(false)
 
   useEffect(() => {
-    if(props.route.params.uid === auth.currentUser.uid) {      
-      setUser(currentUser)
+    const { currentUser, posts } = props;
+    if (props.route.params.uid === auth.currentUser.uid) {
+      setUser(currentUser)      
       setUserPosts(posts)
-    } else {
+      setLoading(false)
+  } else {
       const userDocRef = doc(db,"users",props.route.params.uid );
       
       getDoc(userDocRef).then((snapshot) => {                    
-          if (snapshot.exists()) {                
-              setUser(snapshot.data());                              
-          } else {
-              console.log('does not exist')
+          if (snapshot.exists()) { 
+
+            props.navigation.setOptions({
+              title: snapshot.data().username,
+            })
+
+            setUser({ uid: props.route.params.uid, ...snapshot.data() });                              
           }
+          setLoading(false)
       }).catch((err) => {
         console.error("Failed to retrieve data", err);
       });
@@ -38,8 +50,8 @@ const ProfileScreen = (props) => {
             const id = doc.id;
             return { id, ...data }
         })      
-        setUserPosts(posts)  
-                                                  
+
+        setUserPosts(posts)                                          
       }).catch((err) => {
           console.error("Failed to retrieve data", err);
       });
@@ -51,12 +63,14 @@ const ProfileScreen = (props) => {
       setFollowing(false)
     }
     
-  },[props.route.params.uid,props.following])
+  },[props.route.params.uid, props.following, props.currentUser, props.posts])
 
-  const onFollow = () => {    
+  const onFollow = () => {
     const userDocRef = doc(db, "following", auth.currentUser.uid); 
               
     setDoc(doc(collection(userDocRef,"userFollowing"),props.route.params.uid),{});
+
+    props.sendNotification(user.notificationToken, "New Follower", `${props.currentUser.name} Started following you`, { type: 'profile', user: auth.currentUser.uid })
   }
 
   const onUnfollow = () => {
@@ -74,69 +88,145 @@ const ProfileScreen = (props) => {
     });
   }
 
-  
+  if (loading) {
+    return (
+        <View style={{ height: '100%', justifyContent: 'center', margin: 'auto' }}>
+            <ActivityIndicator style={{ alignSelf: 'center', marginBottom: 20 }} size="large" color="#00ff00" />
+            <Text style={[text.notAvailable]}>Loading</Text>
+        </View>
+    )
+  }
   if (user === null) {
-    return <View />
+      return (
+          <View style={{ height: '100%', justifyContent: 'center', margin: 'auto' }}>
+              <FontAwesome5 style={{ alignSelf: 'center', marginBottom: 20 }} name="dizzy" size={40} color="black" />
+              <Text style={[text.notAvailable]}>User Not Found</Text>
+          </View>
+      )
   }
   return (
-    <View style={styles.container}>
-      <View style={styles.containerInfo}>
-        <Text>{ user.username }</Text>
-        <Text>{ user.email }</Text>
-        {props.route.params.uid !== auth.currentUser.uid ? (
-          <View>
-            {following ? (
-              <Button 
-                title='Following' 
-                onPress={() => onUnfollow()}
-              />
-            ) : (<Button 
-                  title='Follow'
-                  onPress={() => onFollow()}
-                  />)}
+    <>
+    <View style={[container.container,utils.backgroundWhite]}>
+
+      <View style={[container.profileInfo]}>
+
+          <View style={[utils.noPadding, container.row]}>
+
+              {user.image == 'default' ?
+                  (
+                      <FontAwesome5
+                          style={[utils.profileImageBig, utils.marginBottomSmall]}
+                          name="user-circle" size={80} color="black" />
+                  )
+                  :
+                  (
+                      <Image
+                          style={[utils.profileImageBig, utils.marginBottomSmall]}
+                          source={{
+                              uri: user.profile_picture
+                          }}
+                      />
+                  )
+              }
+
+              <View style={[container.container, container.horizontal, utils.justifyCenter, utils.padding10Sides]}>
+
+                  <View style={[utils.justifyCenter, text.center, container.containerImage]}>
+                      <Text style={[text.bold, text.large, text.center]}>{userPosts.length}</Text>
+                      <Text style={[text.center]}>Posts</Text>
+                  </View>
+                  <View style={[utils.justifyCenter, text.center, container.containerImage]}>
+                      <Text style={[text.bold, text.large, text.center]}>{user.followersCount}</Text>
+                      <Text style={[text.center]}>Followers</Text>
+                  </View>
+                  <View style={[utils.justifyCenter, text.center, container.containerImage]}>
+                      <Text style={[text.bold, text.large, text.center]}>{user.followingCount}</Text>
+                      <Text style={[text.center]}>Following</Text>
+                  </View>
+              </View>
+
           </View>
-        ) : <Button 
-          title='Logout'
-          onPress={() => onLogout()}
-          /> }
+
+
+          <View>
+              <Text style={text.bold}>{user.username}</Text>
+              <Text style={[text.profileDescription, utils.marginBottom]}>{user.description}</Text>
+
+              {props.route.params.uid !== auth.currentUser.uid ? (
+                  <View style={[container.horizontal]}>
+                      {following ? (
+                          <TouchableOpacity
+                              style={[utils.buttonOutlined, container.container, utils.margin15Right]}
+                              title="Following"
+                              onPress={() => onUnfollow()}>
+                              <Text style={[text.bold, text.center, text.green]}>Following</Text>
+                          </TouchableOpacity>
+                      )
+                          :
+                          (
+                              <TouchableOpacity
+                                  style={[utils.buttonOutlined, container.container, utils.margin15Right]}
+                                  title="Follow"
+                                  onPress={() => onFollow()}>
+                                  <Text style={[text.bold, text.center, { color: '#2196F3' }]}>Follow</Text>
+                              </TouchableOpacity>
+
+                          )}
+
+                      <TouchableOpacity
+                          style={[utils.buttonOutlined, container.container]}
+                          title="Follow"
+                          onPress={() => props.navigation.navigate('Chat', { user })}>
+                          <Text style={[text.bold, text.center]}>Message</Text>
+                      </TouchableOpacity>
+                  </View>
+              ) :
+                  <TouchableOpacity
+                      style={utils.buttonOutlined}
+                      onPress={() => props.navigation.navigate('EditScreen')}>
+                      <Text style={[text.bold, text.center]}>Edit Profile</Text>
+                  </TouchableOpacity>}
+          </View>
       </View>
 
-      <View style={styles.containerGallery}>
-        <FlatList 
-          numColumns={3} 
-          horizontal={false} 
-          data={userPosts} 
-          renderItem={
-              ({item}) => (
-                <View style={styles.containerImage}>
-                  <Image style={styles.image} source={{uri: item.downloadURL}} />
-                </View>
-              )
-            } />
+      <View style={[utils.borderTopGray]}>
+          <FlatList
+              numColumns={3}
+              horizontal={false}
+              data={userPosts}
+              renderItem={({ item }) => (
+                  <TouchableOpacity
+                      style={[container.containerImage, utils.borderWhite]}
+                      onPress={() => props.navigation.navigate("Post", { item, user })}>
+
+                      {item.type == 0 ?
+
+                          <CachedImage
+                              cacheKey={item.id}
+                              style={container.image}
+                              source={{ uri: item.downloadURLStill }}
+                          />
+
+                          :
+
+                          <CachedImage
+                              cacheKey={item.id}
+                              style={container.image}
+                              source={{ uri: item.downloadURL }}
+                          />
+                      }
+                  </TouchableOpacity>
+
+              )}
+
+          />
       </View>
-    </View>
+      </View >
+      
+    </>    
+    
   )
 }
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: '#fff',
-    flex: 1
-  },
-  containerInfo: {
-    margin: 10
-  },
-  containerGallery: {
-    flex: 1,
-  },
-  image: {    
-    flex: 1,
-    aspectRatio: 1/1
-  },
-  containerImage:{
-    flex: 1/3
-  }
-})
 
 const mapStateToProps = (store) => ({
   currentUser: store.userState.currentUser,
@@ -144,4 +234,6 @@ const mapStateToProps = (store) => ({
   following: store.userState.following    
 })
 
-export default connect(mapStateToProps,null)(ProfileScreen)
+const mapDispatchProps = (dispatch) => bindActionCreators({ sendNotification }, dispatch);
+
+export default connect(mapStateToProps,mapDispatchProps)(ProfileScreen)

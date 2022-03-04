@@ -145,7 +145,7 @@ const container = StyleSheet.create({
     },
     profileInfo: {
         padding: 25,
-        flexDirection: 'column',
+        flexDirection: 'column'        
     },
     row: {
         flexDirection: 'row',
@@ -160,10 +160,9 @@ const container = StyleSheet.create({
     },
     containerImage: {
         flex: 1 / 3
-
     },
     image: {
-        aspectRatio: 1 / 1,
+        aspectRatio: 1 / 1
     },
     fillHorizontal: {
         flexGrow: 1,
@@ -174,7 +173,6 @@ const container = StyleSheet.create({
         height: 70
     },
     gallery: {
-
         borderWidth: 1,
         borderColor: 'gray',
     },

@@ -1,15 +1,16 @@
 import React, { useEffect,useState,useRef } from 'react';
 import { FlatList, RefreshControl, Text, View,StyleSheet } from 'react-native';
-// import BottomSheet from 'react-native-bottomsheet-reanimated'
+import BottomSheet from 'reanimated-bottom-sheet';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { Divider, Snackbar } from 'react-native-paper';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 
+import { deletePost, fetchFeedPosts, reload, sendNotification } from '../redux/actions/index';
 import Post from '../components/home/Post';
 import Header from '../components/home/Header';
 import Stories from '../components/home/Stories';
-
+import { container, utils } from '../components/styles'
 
 function HomeScreen(props) {
   const navigation = props.navigation;
@@ -22,25 +23,22 @@ function HomeScreen(props) {
   const [isValid, setIsValid] = useState(true);
 
   useEffect( () => {    
-    let posts = [];
-    
-    if (props.usersFollowingLoaded == props.following.length && props.following.length !== 0) {
-      
-      for(let i=0;i < props.following.length; i++) {
-        const user = props.users.find(el => el.uid === props.following[i]);
+      if (props.usersFollowingLoaded == props.following.length && props.following.length !== 0) {
+        props.feed.sort(function (x, y) {
+            return y.creation.toDate() - x.creation.toDate();
+        })
 
-        if(user != undefined){
-          posts = [...posts, ...user.posts];
+        setPosts(props.feed);
+        setRefreshing(false)
+        for (let i = 0; i < props.feed.length; i++) {
+            if (props.feed[i].type == 0) {
+                setUnmutted(i)
+                return;
+            }
         }
-      }
-
-      posts.sort((x,y) => {
-        return x.creation - y.creation;
-      });
-
-      return setPosts(posts);
     }
-  },[props.usersFollowingLoaded])
+    navigation.setParams({ param: "value" })
+  },[props.usersFollowingLoaded, props.feed])
 
   const onViewableItemsChanged = useRef(({ viewableItems, changed }) => {
     if (changed && changed.length > 0) {
@@ -48,45 +46,106 @@ function HomeScreen(props) {
     }
   });
 
+  if (posts.length == 0) {
+    return (<View />)
+  }
+
+  if (sheetRef.current !== null) {
+      if (modalShow.visible) {
+          sheetRef.snapTo(0)
+      } else {
+          sheetRef.snapTo(1)
+      }
+  }
+
   return (
-    <View style={styles.container}>
-        <Header navigation={navigation} />
-        <Stories />
+      <View style={[container.container, utils.backgroundWhite]}>
 
-        <FlatList
-                refreshControl={
-                    <RefreshControl
-                        refreshing={refreshing}
-                        onRefresh={() => {
-                            setRefreshing(true);
-                            props.reload()
-                        }}
-                    />
-                }
-                onViewableItemsChanged={onViewableItemsChanged.current}
-                viewabilityConfig={{
-                    waitForInteraction: false,
-                    viewAreaCoveragePercentThreshold: 70
-                }}
-                numColumns={1}
-                horizontal={false}
-                data={posts}
-                keyExtractor={(item, index) => index.toString()}
+          <FlatList
+              refreshControl={
+                  <RefreshControl
+                      refreshing={refreshing}
+                      onRefresh={() => {
+                          setRefreshing(true);
+                          props.reload()
+                      }}
+                  />
+              }
+              onViewableItemsChanged={onViewableItemsChanged.current}
+              viewabilityConfig={{
+                  waitForInteraction: false,
+                  viewAreaCoveragePercentThreshold: 70
+              }}
+              numColumns={1}
+              horizontal={false}
+              data={posts}
+              keyExtractor={(item, index) => index.toString()}
 
-                renderItem={({ item, index }) => (
-                    <View key={index}>
-                        <Post route={{ params: { user: item.user, item, index, unmutted, inViewPort, setUnmuttedMain: setUnmutted, setModalShow, feed: true } }} navigation={props.navigation} />
+              renderItem={({ item, index }) => (
+                  <View key={index}>
+                      <Post route={{ params: { user: item.user, item, index, unmutted, inViewPort, setUnmuttedMain: setUnmutted, setModalShow, feed: true } }} navigation={props.navigation} />
+                  </View>
+              )}
+          />
+
+          <BottomSheet
+              bottomSheerColor="#FFFFFF"
+              ref={setSheetRef}
+              initialPosition={0} //200, 300
+              snapPoints={[300, 0]}
+              isBackDrop={true}
+              isBackDropDismissByPress={true}
+              isRoundBorderWithTipHeader={true}
+              backDropColor="black"
+              isModal
+              containerStyle={{ backgroundColor: "white" }}
+              tipStyle={{ backgroundColor: "white" }}
+              headerStyle={{ backgroundColor: "white", flex: 1 }}
+              bodyStyle={{ backgroundColor: "white", flex: 1, borderRadius: 20 }}
+              body={                  
+                <>
+                {modalShow.item != null ?
+                    <View>
+                        <TouchableOpacity style={{ padding: 20 }}
+                            onPress={() => {
+                                props.navigation.navigate("ProfileScreen", { uid: modalShow.item.user.uid, username: undefined });
+                                setModalShow({ visible: false, item: null });
+                            }}>
+                            <Text >Profile</Text>
+                        </TouchableOpacity>
+                        <Divider />
+                        {modalShow.item.creator == auth.currentUser.uid ?
+                            <TouchableOpacity style={{ padding: 20 }}
+                                onPress={() => {
+                                    props.deletePost(modalShow.item).then(() => {
+                                        setRefreshing(true);
+                                        props.reload()
+                                    })
+                                    setModalShow({ visible: false, item: null });
+                                }}>
+                                <Text >Delete</Text>
+                            </TouchableOpacity>
+                            : null}
+
+                        <Divider />
+                        <TouchableOpacity style={{ padding: 20 }} onPress={() => setModalShow({ visible: false, item: null })}>
+                            <Text >Cancel</Text>
+                        </TouchableOpacity>
                     </View>
-                )}
-            />        
-        <Text
-          onPress={() => 
-            navigation.navigate('Comment',
-            { postId: item.id, uid: item.user.uid })
-          }
-        >View Comments</Text>
-    </View>
-  );
+                    : null}
+                </>
+              }
+          />
+          <Snackbar
+              visible={isValid.boolSnack}
+              duration={2000}
+              onDismiss={() => { setIsValid({ boolSnack: false }) }}>
+              {isValid.message}
+          </Snackbar>
+      </View>
+
+  )
+
 }
 
 const styles = StyleSheet.create({
@@ -98,8 +157,10 @@ const styles = StyleSheet.create({
 const mapStateToProps = (store) => ({
   currentUser: store.userState.currentUser,
   following: store.userState.following,
-  users: store.usersState.users,
+  feed: store.usersState.feed,
   usersFollowingLoaded: store.usersState.usersFollowingLoaded
 })
 
-export default connect(mapStateToProps, null)(HomeScreen);
+const mapDispatchProps = (dispatch) => bindActionCreators({ reload, sendNotification, fetchFeedPosts, deletePost }, dispatch);
+
+export default connect(mapStateToProps, mapDispatchProps)(HomeScreen);

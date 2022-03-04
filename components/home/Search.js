@@ -1,8 +1,12 @@
-import { View, Text, TextInput, FlatList,StyleSheet, TouchableOpacity } from 'react-native'
+import { View, Text, TextInput, FlatList,StyleSheet, TouchableOpacity,Image } from 'react-native'
 import React, { useState } from 'react'
 import { collection, query, where,getDocs } from "firebase/firestore";
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
 
 import { db } from '../../firebase'
+import { queryUsersByUsername } from '../../redux/actions/index'
+import { container, text, utils } from '../../components/styles';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const Search = (props) => {
@@ -25,26 +29,51 @@ const Search = (props) => {
         console.error("Failed to retrieve data", err);
     });
   }
-  
+
   return (
-    <View style={styles.container}>
-      <View style={styles.searchContainer}>
-        <MaterialCommunityIcons name='magnify' style={styles.icon} color='#FFF' />
-        <TextInput placeholder='Search' style={styles.input} onChangeText={(search) => fetchUsers(search)} />
-      </View>  
-      
-      <FlatList 
-        numColumns={1}
-        horizontal={false}
-        data={users}
-        renderItem={({item}) => (
-            <TouchableOpacity 
-                onPress={() => props.navigation.navigate('BottomTabs',{screen: "ProfileScreen",params: {uid: item.owner_uid}})}
-            >
-                <Text>{item.username}</Text>
-            </TouchableOpacity>
-        )}
-      />
+    <View style={[utils.backgroundWhite, container.container]}>
+        <View style={{ marginVertical: 30, paddingHorizontal: 20 }}>
+            <TextInput
+                style={utils.searchBar}
+                placeholder="Type Here..."
+                onChangeText={(search) => props.queryUsersByUsername(search).then(setUsers)} />
+        </View>
+
+
+        <FlatList
+            numColumns={1}
+            horizontal={false}
+            data={users}
+            renderItem={({ item }) => (
+                <TouchableOpacity
+                    style={[container.horizontal, utils.padding10Sides, utils.padding10Top]}
+                    onPress={() => props.navigation.navigate("ProfileScreen", { uid: item.id, username: undefined })}>
+
+                    {item.profile_picture == 'default' ?
+                        (
+                            <FontAwesome5
+                                style={[utils.profileImage, utils.marginBottomSmall]}
+                                name="user-circle" size={50} color="black" />
+
+                        )
+                        :
+                        (
+                            <Image
+                                style={[utils.profileImage, utils.marginBottomSmall]}
+                                source={{
+                                    uri: item.profile_picture
+                                }}
+                            />
+                        )
+                    }
+                    <View style={utils.justifyCenter}>
+                        <Text style={text.username}>{item.username}</Text>
+                        <Text style={text.name} >{item.name}</Text>
+                    </View>
+                </TouchableOpacity>
+
+            )}
+        />
     </View>
   )
 }
@@ -69,4 +98,6 @@ const styles = StyleSheet.create({
     }
   })
 
-export default Search
+const mapDispatchProps = (dispatch) => bindActionCreators({ queryUsersByUsername }, dispatch);
+
+export default connect(null, mapDispatchProps)(Search);

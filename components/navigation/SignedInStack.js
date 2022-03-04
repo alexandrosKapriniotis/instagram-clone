@@ -4,10 +4,12 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { connect } from 'react-redux';
 import {  bindActionCreators } from 'redux';
 
-import NewPostScren from './../../screens/NewPostScreen';
+import NewPostScreen from './../../screens/NewPostScreen';
+import EditScreen from './../../screens/EditScreen';
 import LoginScreen from './../../screens/LoginScreen';
 import SignupScreen from './../../screens/SignupScreen';
 import CommentsScreen from '../../screens/CommentsScreen';
+import Post from '../home/Post';
 import BottomTabs from './BottomTabs';
 import Save from '../Add/Save';
 import { fetchUser,fetchUserPosts,fetchUserFollowing,clearData } from '../../redux/actions/index';
@@ -31,9 +33,11 @@ const SignedInStack = (props) => {
         <Stack.Navigator initialRouteName='BottomTabs' screenOptions={screenOptions}>
             <Stack.Screen name="BottomTabs" component={BottomTabs} />
             <Stack.Screen name="Save" component={Save} />
-            <Stack.Screen name="NewPostScreen" component={NewPostScren} />            
+            <Stack.Screen name="NewPostScreen" component={NewPostScreen} />            
             <Stack.Screen name="LoginScreen" component={LoginScreen} />
+            <Stack.Screen name="EditScreen" component={EditScreen} />        
             <Stack.Screen name="CommentsScreen" component={CommentsScreen} />        
+            <Stack.Screen name="Post" component={Post} />        
         </Stack.Navigator>
     </NavigationContainer>    
   )

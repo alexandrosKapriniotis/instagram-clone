@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, StyleSheet,Text,Image, TouchableOpacity } from 'react-native';
+import { View, Dimensions,Text,Image, TouchableOpacity } from 'react-native';
 import { Divider, Snackbar } from 'react-native-paper';
-import { arrayRemove, arrayUnion, collection, doc,getDoc,onSnapshot,updateDoc } from 'firebase/firestore';
+import { arrayRemove, arrayUnion, collection, deleteDoc, doc,getDoc,onSnapshot,setDoc,updateDoc } from 'firebase/firestore';
 import { useNavigation,useIsFocused } from '@react-navigation/native';
 import BottomSheet from 'reanimated-bottom-sheet';
 import ParsedText from 'react-native-parsed-text';
@@ -9,13 +9,16 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { Entypo, Feather, FontAwesome5 } from '@expo/vector-icons';
 
-import { fetchUserPosts } from '../../redux/actions';
+import { fetchUserPosts,deletePost } from '../../redux/actions';
 import { container,text,utils } from '../styles';
 import { timeDifference } from '../utils';
 import CachedImage from '../CachedImage';
+import { auth, db } from '../../firebase';
 
-const Post = (props) => {
-  
+const WINDOW_WIDTH = Dimensions.get("window").width;
+
+function Post(props) {
+  const navigation = useNavigation();
   const post = props.post;
   const [item, setItem] = useState(props.route.params.item)
   const [user, setUser] = useState(props.route.params.user)
@@ -28,25 +31,12 @@ const Post = (props) => {
   const [exists, setExists] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
-  const navigation = useNavigation();
   
   const isFocused = useIsFocused();
     useEffect(() => {
 
         if (props.route.params.notification != undefined) {
             const userDoc = doc(db,"users",props.route.params.user);
-            // firebase.firestore()
-            //     .collection("users")
-            //     .doc(props.route.params.user)
-            //     .get()
-            //     .then((snapshot) => {
-            //         if (snapshot.exists) {
-            //             let user = snapshot.data();
-            //             user.uid = snapshot.id;
-
-            //             setUser(user)
-            //         }
-            //     })
             getDoc(userDoc).then((snapshot) => {
                 if (snapshot.exists) {
                     let user = snapshot.data();
@@ -72,7 +62,7 @@ const Post = (props) => {
             const likesRef = collection(userPostsRef,props.route.params.item,"likes");
             const currentUserDocRef = doc(likesRef, auth.currentUser.uid);
 
-            onSnapshot(currentUserDocRef,snapshot => {   
+            return onSnapshot(currentUserDocRef,snapshot => {   
                 let currentUserLike = false;
                 if (snapshot.exists) {
                     currentUserLike = true;
@@ -81,26 +71,16 @@ const Post = (props) => {
             })
         }
         else {
-            // .collection("posts")
-            //     .doc(props.route.params.user.uid)
-            //     .collection("userPosts")
-            //     .doc(props.route.params.item.id)
-            //     .collection("likes")
-            //     .doc(firebase.auth().currentUser.uid)
-            //     .onSnapshot
-            // const userPostsCollectionRef = collection(db,"posts",props.route.params.uid,"userPosts");
-            // const likesCollectionRef  = collection(userPostsCollectionRef,props.route.params.item.id,"likes");
+            const currentUserRef = doc(db,"posts",props.route.params.user.uid,"userPosts",props.route.params.item.id,"likes",auth.currentUser.uid);
             
-            // console.log(likesCollectionRef);
-            // getDoc(db,likesCollectionRef,auth.currentUser.uid).then(snapshot => console.log(snapshot.exists)).catch(error => console.log(error))
-            // onSnapshot(doc(likesCollectionRef,auth.currentUser.uid),(snapshot) => {
-            //     let currentUserLike = false;
-            //     if (snapshot.exists) {
-            //         currentUserLike = true;
-            //     }
-            //     setCurrentUserLike(currentUserLike)
-            // });
-
+            onSnapshot(currentUserRef, (snapshot) => {
+                let currentUserLike = false;
+                if (snapshot.exists) {
+                    currentUserLike = true;
+                }
+                setCurrentUserLike(currentUserLike)
+            });
+            
             setItem(props.route.params.item)
             setUser(props.route.params.user)
             setLoaded(true)
@@ -148,15 +128,23 @@ const Post = (props) => {
   }
 
   const onUsernamePress = (username, matchIndex) => {
-    props.navigation.navigate("ProfileOther", { username, uid: undefined })
-}
+    navigation.navigate("Profile", { username, uid: undefined })
+  }
 
 const onLikePress = (userId, postId, item) => {
-    
+    item.likesCount += 1;
+    setCurrentUserLike(true)
+
+    const currentUserRef = doc(db,"posts",userId,"userPosts",postId,"likes",auth.currentUser.uid);
+    setDoc(currentUserRef, {});
+    // props.sendNotification(user.notificationToken, "New Like", `${props.currentUser.name} liked your post`, { type: 0, postId, user: firebase.auth().currentUser.uid })
 }
 const onDislikePress = (userId, postId, item) => {
-    
+    const currentUserRef = doc(db,"posts",userId,"userPosts",postId,"likes",auth.currentUser.uid);
+
+    deleteDoc(currentUserRef);
 }
+
 if (!exists && loaded) {
     return (
         <View style={{ height: '100%', justifyContent: 'center', margin: 'auto' }}>
@@ -165,6 +153,7 @@ if (!exists && loaded) {
         </View>
     )
 }
+
 if (!loaded) {
     return (<View></View>)
 
@@ -204,12 +193,11 @@ if (sheetRef.current !== null && !props.route.params.feed) {
 
   return (
     <View style={[container.container, utils.backgroundWhite]}>
-
-        <View>
-            <View style={[container.horizontal, { alignItems: 'center', padding: 10 }]}>
+        <>
+        <View style={[container.horizontal, { alignItems: 'center', padding: 10 }]}>
                 <TouchableOpacity
                     style={[container.horizontal, { alignItems: 'center' }]}
-                    onPress={() => props.navigation.navigate("ProfileOther", { uid: user.uid, username: undefined })}>
+                    onPress={() => navigation.navigate("BottomTabs",{ screen: "ProfileScreen", params: { uid: user.uid, username: undefined }})}>
 
                     {user.image == 'default' ?
                         (
@@ -246,9 +234,10 @@ if (sheetRef.current !== null && !props.route.params.feed) {
                     <Feather
                         name="more-vertical" size={20} color="black" />
                 </TouchableOpacity>
+                
             </View>
             {item.type == 0 ?
-                <View>
+                <>
                     {props.route.params.index == props.route.params.inViewPort && isFocused ?
                         <View>
                             <VideoPlayer
@@ -316,42 +305,42 @@ if (sheetRef.current !== null && !props.route.params.feed) {
                             />
                         </View>
                     }
-
-                </View>
-
+                </>
                 :
-
                 <CachedImage
                     cacheKey={item.id}
-                    style={container.image}
+                    style={[container.image]}
                     source={{ uri: item.downloadURL }}
                 />
             }
 
-            <View style={[utils.padding10, container.horizontal]}>
+            <View style={[utils.padding10, container.horizontal,{zIndex: 999}]}> 
                 {currentUserLike ?
                     (
-                        <Entypo name="heart" size={30} color="red" onPress={() => onDislikePress(user.uid, item.id, item)} />
+                        <TouchableOpacity onPress={() => onDislikePress(user.uid, item.id, item)}>
+                            <Entypo name="heart" size={30} color="red" />
+                        </TouchableOpacity>
                     )
                     :
                     (
-                        <Feather name="heart" size={30} color="black" onPress={() => onLikePress(user.uid, item.id, item)} />
-
+                        <TouchableOpacity onPress={() => onLikePress(user.uid, item.id, item)}>
+                            <Feather name="heart" size={30} color="black" />
+                        </TouchableOpacity>                        
                     )
                 }
-                <Feather style={utils.margin15Left} name="message-square" size={30} color="black" onPress={() => props.navigation.navigate('Comment', { postId: item.id, uid: user.uid, user })} />
-                <Feather style={utils.margin15Left} name="share" size={26} color="black" onPress={() => props.navigation.navigate('ChatList', { postId: item.id, post: { ...item, user: user }, share: true })} />
+                
+                <Feather style={utils.margin15Left} name="message-square" size={30} color="black" onPress={() => navigation.navigate('CommentsScreen', { postId: item.id, uid: user.uid, user })} />
 
-
+                <Feather style={utils.margin15Left} name="share" size={26} color="black" onPress={() => navigation.navigate('ChatList', { postId: item.id, post: { ...item, user: user }, share: true })} />
             </View>
-            <View style={[container.container, utils.padding10Sides]}>
+            <View style={[container.container, utils.padding10Sides,{zIndex: 999}]}>
                 <Text style={[text.bold, text.medium]}>
                     {item.likesCount} likes
                 </Text>
                 <Text style={[utils.margin15Right, utils.margin5Bottom]}>
                     <Text style={[text.bold]}
-                        onPress={() => props.navigation.navigate("ProfileOther", { uid: user.uid, username: undefined })}>
-                        {user.name}
+                        onPress={() => navigation.navigate("BottomTabs",{screen: "ProfileScreen",params: { uid: user.uid, username: undefined }})}>
+                        {user.username}
                     </Text>
 
                     <Text>    </Text>
@@ -364,16 +353,19 @@ if (sheetRef.current !== null && !props.route.params.feed) {
                     >{item.caption}</ParsedText>
 
                 </Text>
-                <Text
-                    style={[text.grey, utils.margin5Bottom]} onPress={() => props.navigation.navigate('Comment', { postId: item.id, uid: user.uid, user })}>
-                    View all {item.commentsCount} Comments
-                </Text>
+                <TouchableOpacity onPress={() => navigation.navigate('CommentsScreen', { postId: item.id, uid: user.uid, user })}>
+                    <Text
+                        style={[text.grey, utils.margin5Bottom]} >
+                        View all {item.commentsCount} Comments
+                    </Text>
+                </TouchableOpacity>
+                
                 <Text
                     style={[text.grey, text.small, utils.margin5Bottom]}>
-                    {timeDifference(new Date(), item.creation.toDate())}
+                    {timeDifference(new Date(), item.creation?.toDate())}
                 </Text>
             </View>
-        </View>
+        </>
 
         <BottomSheet
             bottomSheerColor="#FFFFFF"
@@ -397,18 +389,18 @@ if (sheetRef.current !== null && !props.route.params.feed) {
                         <View>
                             <TouchableOpacity style={{ padding: 20 }}
                                 onPress={() => {
-                                    props.navigation.navigate("ProfileOther", { uid: modalShow.item.user.uid, username: undefined });
+                                    navigation.navigate("Profile", { uid: modalShow.item.user.uid, username: undefined });
                                     setModalShow({ visible: false, item: null });
                                 }}>
                                 <Text >Profile</Text>
                             </TouchableOpacity>
                             <Divider />
-                            {props.route.params.user.uid == firebase.auth().currentUser.uid ?
+                            {props.route.params.user.uid == auth.currentUser.uid ?
                                 <TouchableOpacity style={{ padding: 20 }}
                                     onPress={() => {
                                         props.deletePost(modalShow.item).then(() => {
                                             props.fetchUserPosts()
-                                            props.navigation.popToTop()
+                                            navigation.popToTop()
                                         })
                                         setModalShow({ visible: false, item: null });
                                     }}>
@@ -434,73 +426,7 @@ if (sheetRef.current !== null && !props.route.params.feed) {
         </Snackbar>
     </View>
 )
-}  
-
-
-
-
-
-
-const PostFooter = ({handleLike,post,handleComment}) => {
-    return <View style={{flexDirection: "row",justifyContent: 'space-between'}}>
-                <View style={styles.leftFooterIconsContainer}>
-                    <TouchableOpacity onPress={() => handleLike(post)}>
-                        <Image 
-                            style={{width: 26,height: 25}} 
-                            source={  
-                                post.likes_by_users?.includes(auth.currentUser.uid) 
-                                ? require("../../assets/heart-full.png")
-                                : require("../../assets/like--v1.png")} 
-                        />
-                    </TouchableOpacity>                    
-                    <Icon iconStyle={{ size: 26,color: '#fff'}} iconName="comment-outline" onPress={() => handleComment(post)} />
-                    <Icon iconStyle={{ size: 26,color: '#fff'}} iconName="share-outline" />
-                </View>
-
-                <View>
-                    <Icon iconStyle={{ size: 26,color: '#fff'}} iconName="bookmark-outline" />
-                </View>                
-            </View>
-};
-
-const Icon = ({ iconStyle, iconName, onPress}) => (
-    <TouchableOpacity onPress={onPress}>
-        <MaterialCommunityIcons name={iconName} size={iconStyle.size} color={iconStyle.color} />
-    </TouchableOpacity>
-);
-
-
-
-
-
-
-
-const styles = StyleSheet.create({
-  container: {   
-      marginBottom: 30,
-      flex: 1,
-      paddingVertical: 10
-  },
-  profilePic: {
-    width: 35,
-    height: 35,
-    borderRadius: 50,
-    marginLeft: 6,
-    borderWidth: 1.6,
-    borderColor: '#ff8501'
-  },
-  text: {
-      color: "#FFF",
-      marginLeft: 5,
-      fontWeight: '700'
-  },
-  leftFooterIconsContainer: {
-      flexDirection: "row",
-      width: '32%',
-      justifyContent: "space-between"
-  },
-
-});
+} 
 
 const mapStateToProps = (store) => ({
     currentUser: store.userState.currentUser,
@@ -509,6 +435,6 @@ const mapStateToProps = (store) => ({
     usersFollowingLoaded: store.usersState.usersFollowingLoaded,
 })
 
-const mapDispatchProps = (dispatch) => bindActionCreators({ fetchUserPosts }, dispatch);
+const mapDispatchProps = (dispatch) => bindActionCreators({ fetchUserPosts,deletePost }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchProps)(Post);
